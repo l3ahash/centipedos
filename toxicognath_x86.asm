@@ -1,12 +1,7 @@
 ; =============================================================================
-; o       o              | Variable: Multiboot header
-;  \_____/               | Use: Multiboot looks for this to learn how to boot
-;  /=O=O=\     _______   |       our OS
-; /   ^   \   /\\\\\\\\  | Help: https://www.gnu.org/software/grub/manual/multiboot/multiboot.html
-; \ \___/ /  /\   ___  \ |       (I know this doc is outdated but it helped me)
-; \_ V _/  /\   /\\\\  \ |
-;   \  \__/\   /\ @_/  / |
-;    \____\____\______/  |
+; \(")/ | Variable: multiboot_header
+; -( )- | Use: Multiboot looks for this to learn how to boot our OS
+; /(_)\ | Help:  https://www.gnu.org/software/grub/manual/multiboot/multiboot.html
 ; =============================================================================
 
 section .multiboot
@@ -16,24 +11,20 @@ align 4
 	dd 0xE4524FFB
 
 ; =============================================================================
-; o    o                 | Variable: physical_page_bitmap_table
-;  \__/                  | Use: each physical page is represented with a bit in 
-;  /oo\                  |  this table and its used for allocation of physical
-;  \()/                  |  pages
-;  |~~|                  |
-;  |~~|                  |
-;  |~~|               /\ |	
-;  \~~\              /\/ | 
-;   \~~\____________/\/  | 
-;    \/ | | | | | | \/   | 
-;     ~~~~~~~~~~~~~~~    |
+; \(")/ | Variable: physical_page_bitmap_table
+; -( )- | Use: each physical page is represented with a bit in this tablke and
+; /(_)\ |       its used for allocation of physical pages
 ; =============================================================================
+
 
 section .bss
 align 16
 physical_page_bitmap_table resb 131072
 
 ; =============================================================================
+; \(")/ | Variable: first_thread_block
+; -( )- | Use: Serves as the first thread descriptor to bootstrap the kernel
+; /(_)\ | 
 ; =============================================================================
 
 section .bss
@@ -41,12 +32,9 @@ align 4096
 first_thread_block: resb 4096
 
 ; =============================================================================
-; Art by Hayley Jane Wakenshaw| Variable: GDTP
-;    .----.   @   @           | Use: 16 bit size and 32 bit base for GDT
-;   / .-"-.`.  \v/            | Help: https://wiki.osdev.org/Global_Descriptor_Table
-;   | | '\ \ \_/ )            |
-; ,-\ `-.' /.'  /             |
-; '---`----'----'             |
+; \(")/ | Variable: gdtp
+; -( )- | Use: size and base pointer to gdt
+; /(_)\ | Help: https://wiki.osdev.org/Global_Descriptor_Table
 ; =============================================================================
 
 section .data
@@ -56,9 +44,9 @@ gdtp:
 	dd gdt
 
 ; =============================================================================
-; Art by Graeme Porter | Variable: GDT
-; _ .                  | Use: x86 requires this table for access rings
-; \|                   | Help: https://wiki.osdev.org/Global_Descriptor_Table
+; \(")/ | Variable: gdt
+; -( )- | Use: descriptor of x86 segments and segments access rings
+; /(_)\ | Help: https://wiki.osdev.org/Global_Descriptor_Table
 ; =============================================================================
 
 section .data
@@ -107,18 +95,9 @@ _start:
 .test db 0x07, 0x00
 
 ; =============================================================================
-;Art by Shanaka Dias | Macro: mutex_lock
-;      __ __         | Use: waits for mutex and gets access to it
-;   .-',,^,,'.       | Inputs: address of mutex in bitmap
-;  / \(0)(0)/ \      | Outputs: none
-;  )/( ,_"_,)\(      |          (waits for mutex)
-;  `  >-`~(   '      | Macro: mutex_unlock
-;_N\ |(`\ |___       | Use: unlocks a mutex
-;\' |/ \ \/_-,)      | Inputs: address of mutex in bitmap
-; '.(  \`\_<         | Outpus: none
-;    \ _\|           |
-;     | |_\_         |
-;snd  \_,_>-'        |
+; \(")/ | Macro: mutex_lock
+; -( )- | Inputts: address of mutex to wait and lock on
+; /(_)\ | Outputs: none
 ; =============================================================================
 
 %macro mutex_lock 1
@@ -127,9 +106,21 @@ _start:
 	jc %%mutex_wait
 %endmacro 
 
+; =============================================================================
+; \(")/ | Macro: mutex_unlock
+; -( )- | Inputts: address of mutex to unlock
+; /(_)\ | Outputs: none
+; =============================================================================
+
 %macro mutex_unlock 1
 	btr dword [mutex_bitmap + (%1 / 32)], (%1 % 32)
 %endmacro 
+
+; =============================================================================
+; \(")/ | Variable: mutex_bitmap
+; -( )- | Use: bitmap of mutexes to lock and unlock for various purposes.
+; /(_)\ |
+; =============================================================================
 
 section .data 
 mutex_bitmap:
@@ -138,23 +129,9 @@ times 256 dd 0
 mutex_vga_text_buffer equ 0
 
 ; =============================================================================
-;⠀⢸⠂⠀⠀⠀⠘⣧⠀⠀⣟⠛⠲⢤⡀⠀⠀⣰⠏⠀⠀⠀⠀⠀⢹ | Function: debug_terminal_println
-;⠀⡿⠀⠀⠀⠀⠀⠈⢷⡀⢻⡀⠀⠀⠙⢦⣰⠏⠀⠀⠀⠀⠀⠀⢸⠀| Use: Scrolls debug terminal and prints a 
-;⠀⡇⠀⠀⠀⠀⠀⠀⢀⣻⠞⠛⠀⠀⠀⠀⠻⠀⠀⠀⠀⠀⠀⠀⢸⠀ |       line
-;⠀⡇⠀⠀⠀⠀⠀⠀⠛⠓⠒⠓⠓⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀ | Inputs:
-;⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⠀  |    - Zero terminated string to print
-;⠀⢿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣀⣀⣀⠀⠀⢀⡟⠀ | Outputs:
-;⠀⠘⣇⠀⠘⣿⠋⢹⠛⣿⡇⠀⠀⠀⠀⣿⣿⡇⠀⢳⠉⠀⣠⡾⠁|    - None
-;⣦⣤⣽⣆⢀⡇⠀⢸⡇⣾⡇⠀⠀⠀⠀⣿⣿⡷⠀⢸⡇⠐⠛⠛⣿|
-;⠹⣦⠀⠀⠸⡇⠀⠸⣿⡿⠁⢀⡀⠀⠀⠿⠿⠃⠀⢸⠇⠀⢀⡾⠁|
-;⠀⠈⡿⢠⢶⣡⡄⠀⠀⠀⠀⠉⠁⠀⠀⠀⠀⠀⣴⣧⠆⠀⢻⡄⠀ |
-;⠀⢸⠃⠀⠘⠉⠀⠀⠀⠠⣄⡴⠲⠶⠴⠃⠀⠀⠀⠉⡀⠀⠀⢻⡄ |
-;⠀⠘⠒⠒⠻⢦⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣤⠞⠛⠒⠛⠋⠁ |
-;⠀⠀⠀⠀⠀⠀⠸⣟⠓⠒⠂⠀⠀⠀⠀⠀⠈⢷⡀⠀⠀⠀⠀⠀⠀⠀ |
-;⠀⠀⠀⠀⠀⠀⠀⠙⣦⠀⠀⠀⠀⠀⠀⠀⠀⠈⢷⠀⠀⠀⠀⠀⠀⠀
-;⠀⠀⠀⠀⠀⠀⠀⣼⣃⡀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣆⠀⠀⠀⠀⠀⠀
-;⠀⠀⠀⠀⠀⠀⠀⠉⣹⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⠀⠀⠀⠀⠀⠀
-;⠀⠀⠀⠀⠀⠀⠀⠀⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡆⠀⠀⠀⠀⠀
+; \(")/ | Function: debug_terminal_println
+; -( )- | Inputts: zero terminated string to print
+; /(_)\ | Outputs: none
 ; =============================================================================
 
 section .text 
@@ -179,31 +156,11 @@ debug_terminal_println:
 	mutex_unlock mutex_vga_text_buffer
 	ret
 
-; =============================================================================⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡴⠛⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    
-;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⠛⢠⡀⠸⣆⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    |
-;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡼⡁⢰⣋⡇⠀⡿⢳⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠤⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    |
-;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡼⠁⣏⠉⠛⠳⢤⣟⠀⢧⠀⠀⣀⣤⣠⣤⣄⣀⠀⠀⢷⠀⠀⠈⠙⠢⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   |
-;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⡔⠃⣀⠘⢆⣀⠀⠀⠉⠀⠘⠚⠉⠀⠀⢀⡀⠀⢸⠇⣀⢸⡀⠀⠀⠀⠀⠈⢧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   |
-;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⠙⡾⠟⣷⠂⠉⠀⠀⠀⠀⠀⠀⠀⢶⢚⣹⠃⢠⡏⠀⡏⠹⠃⠀⠀⠀⠀⠀⢸⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   |
-;⢀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣼⠇⣰⠀⠀⠀⠠⠶⠳⣦⠀⠀⠀⠘⠲⠃⢠⠟⠁⠀⡏⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   |
-;⠈⣿⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠏⡟⠷⠟⠁⠀⠀⣴⡆⠀⢸⡇⠀⠀⢠⣄⡴⠏⠀⡀⢰⠇⠀⠀⠀⠀⠀⠀⢠⡾⠚⠋⠉⠉⢳⡀⠀⠀⠀⠀⠀ |
-;⠀⢹⡌⠙⢷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⢧⡐⠶⠄⠀⠀⠻⣃⡀⠸⡷⠀⠀⠀⠹⣆⠀⢀⡿⡏⠀⠀⠀⠀⠀⠀⣠⡾⠀⠀⠀⢀⡴⠟⠁⠀⠀⠀⠀⠀  |
-;⠀⠀⢷⠀⠀⠻⣷⣄⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⠙⠦⣤⣀⡀⠀⠘⠿⠇⠀⣤⠴⣶⣞⣁⣠⣾⡀⠀⠀⣤⣠⣴⠶⢾⣁⣧⠀⠀⠀⠈⢧⡤⠖⠚⠦⣄⡀⠀|
-;⠀⠀⠘⡇⠀⠀⠈⠻⣷⡀⠀⠀⣠⢾⡉⢉⡍⠙⠳⣶⢟⣯⣭⠿⠷⣤⡀⣠⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠉⠛⠚⠻⠀⠀⠀⠀⠈⣇⠀⠀⠀⠀⠙⣦ |
-;⠀⠀⠀⢹⡀⠀⠀⠀⢿⣧⠀⠀⢧⣸⡀⠘⣇⣴⠀⠀⢘⠛⠛⠀⣰⠊⠻⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣤⣄⣄⡓⣶⠏
-;⠀⠀⠀⠀⣧⠀⠀⠀⠈⣿⣆⣠⣤⣭⡭⠿⣹⣿⡋⠉⠛⠓⠒⠴⠃⠀⠀⠀⠀⢠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⣇⠈⠙⠛⠁⠀
-;⠀⠀⠀⠀⠈⠳⣄⠀⠀⠸⣿⠉⠀⠈⢻⠞⠙⡾⠁⡀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⣀⣀⣀⣀⣀⣀⣀⣬⠷⠶⠤⢤⣤⣄⣀⣀⣤⣄⡀⣰⠤⢽⠆⠀⠀⠀⠀
-;⠀⠀⠀⠀⠀⠀⠈⠳⣄⠀⢿⣧⠀⠀⠘⠷⠾⠷⣼⣅⣀⣀⠀⠀⠀⠀⠀⠀⠸⡅⠀⠀⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠏⠀⠀⠀⠀⠀⠀⠀
-;⠀⠀⠀⠀⠀⠀⠀⠀⠘⢧⡈⡿⣄⣀⣀⣀⣀⣀⣈⣳⣍⠉⠉⠛⢿⡛⢦⡼⠛⠛⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠻⠻⠶⠿⠿⠷⠷⠿⠿⠾⠶⠶⠶⠶⠿⠟⠁⠀⠀
-; She is just like me fr fr
-; Function: debug_terminal_printlnf
-; Use: prints string and if it hits 0x07 it prints in hex the second argument
-; Inputs:
-;	- zero terminated string
-;   - register to print
-; Outputs: none⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+; =============================================================================
+; \(")/ | Function: debug_terminal_printlnf
+; -( )- | Inputts: zero terminated string to print
+; /(_)\ |		   register to print on string 0x07
+;       | Outputs: none
 ; =============================================================================
 
 section .text 
@@ -249,12 +206,9 @@ debug_terminal_printlnf:
 	jmp .print_loop
 
 ; =============================================================================
-;                       .-.   | Function: debug_terminal_scroll
-;        .-""`""-.    |(@ @)  | Use: Scrolls the terminal one line
-;     _/`oOoOoOoOo`\_ \ \-/   | Inputs: none
-;    '.-=-=-=-=-=-=-.' \/ \   |
-;jgs   `-=.=-.-=.=-'    \ /\  | Outputs: none
-;         ^  ^  ^       _H_ \ |
+; \(")/ | Function: debug_terminal_scroll
+; -( )- | Inputts: none
+; /(_)\ | Outputs: none
 ; =============================================================================
 
 debug_terminal_scroll:
@@ -272,21 +226,9 @@ debug_terminal_scroll:
 	ret
 
 ; =============================================================================
-;           ___                     | Function: physical_page_free
-;         .';:;'.                   | Use: frees a physical page for allocation
-;        /_' _' /\   __             | Inputs: 	
-;        ;a/ e= J/-'"  '.           |     - pointer to base of page to free
-;        \ ~_   (  -'  ( ;_ ,.      | Outputs: none  
-;         L~"'_.    -.  \ ./  )     | 
-;         ,'-' '-._  _;  )'   (     |
-;       .' .'   _.'")  \  \(  |     |
-;      /  (  .-'   __\{`', \  |     |
-;     / .'  /  _.-'   "  ; /  |     |
-;    / /    '-._'-,     / / \ (     |
-; __/ (_    ,;' .-'    / /  /_'-._  |
-;`"-'` ~`  ccc.'   __.','     \j\L\ |
-;                 .='/|\7           |
-;     snd                           |
+; \(")/ | Function: physical_page_free
+; -( )- | Inputts: pointer to page to free
+; /(_)\ | Outputs: none
 ; =============================================================================
 
 section .text 
@@ -299,25 +241,9 @@ physical_page_free:
 	ret
 
 ; =============================================================================
-;                          `-.                | Function: physical_page_alloc
-;              -._ `. `-.`-. `-.              | Use: allocates a physical page
-;             _._ `-._`.   .--.  `.           | Inputs: none
-;          .-'   '-.  `-|\/    \|   `-.       | Outputs: 
-;        .'         '-._\   (o)O) `-.         | 	- pointer to page allocated
-;       /         /         _.--.\ '. `-. `-. |
-;      /|    (    |  /  -. ( -._( -._ '. '.   |
-;     /  \    \-.__\ \_.-'`.`.__'.   `-, '. .'|
-;     |  /\    |  / \ \     `--')/  .-'.'.'   |
-; .._/  /  /  /  / / \ \          .' . .' .'  |
-;/  ___/  |  /   \ \  \ \__       '.'. . .    |
-;\  \___  \ (     \ \  `._ `.     .' . ' .'   |
-; \ `-._\ (  `-.__ | \    )//   .'  .' .-'    |
-;  \_-._\  \  `-._\)//    ""_.-' .-' .' .'    |
-;    `-'    \ -._\ ""_..--''  .-' .'          |
-;            \/    .' .-'.-'  .-' .-'         |
-;                .-'.' .'  .' .-'             |
-;"PRECIOUSSSS!! What has the nasty Bagginsess |
-;           got in it's pocketssss?"          |
+; \(")/ | Function: physical_page_alloc
+; -( )- | Inputts: none
+; /(_)\ | Outputs: pointer to allocated page
 ; =============================================================================
 
 section .text 
@@ -343,14 +269,9 @@ section .data
 .no_more_memory_msg db "NO MORE MEMORY UHOH!!!!", 0
 
 ; =============================================================================
-; Art by Morfina                | Function: kernel_panic
-; _________________.---.______  | Use: panics the mcducking kernel sargent
-;(_(______________(_o o_(____() | Inputs:
-;        mrf  .___.'. .'.___.   |    - pointer to message zero terminated
-;             \ o    Y    o /   | 
-;              \ \__   __/ /    | Outputs: none 
-;               '.__'-'__.'     | THIS LITERALLY DOESNT RETURN KIDDIE
-;                   '''         |
+; \(")/ | Function: kernel_panic
+; -( )- | Inputts: pointer to error message zero terminated
+; /(_)\ | Outputs: none
 ; =============================================================================
 
 section .text 
@@ -382,9 +303,9 @@ section .data
 .msg db "KERNEL PANIC... ", 0
 
 ; =============================================================================
-;    \_/-.--.--.--.--.--.  | Struct: thread_block
-;    (")__)__)__)__)__)__) | Use: Stores the state and information for a thread
-; jgs  ^ "" "" "" "" "" "" |
+; \(")/ | Struct: thread_block
+; -( )- | Use: stores information about a thread including register state
+; /(_)\ |
 ; =============================================================================
 
 thread_block.stack_top    equ 2048 

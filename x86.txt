@@ -9,3 +9,9 @@ Return Values - edx:eax
 Parameter - eax, ecx, edx, ebp 
 Scratch Registers - eax, ecx, edx, ebp
 Preserved Registers - ebx, esi, edi  
+
+; =============================================================================
+; /\_/\  | 
+;( o.o ) | Use:
+; > ^ <  | 
+; =============================================================================
