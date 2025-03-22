@@ -107,6 +107,37 @@ _start:
 .test db 0x07, 0x00
 
 ; =============================================================================
+;Art by Shanaka Dias | Macro: mutex_lock
+;      __ __         | Use: waits for mutex and gets access to it
+;   .-',,^,,'.       | Inputs: address of mutex in bitmap
+;  / \(0)(0)/ \      | Outputs: none
+;  )/( ,_"_,)\(      |          (waits for mutex)
+;  `  >-`~(   '      | Macro: mutex_unlock
+;_N\ |(`\ |___       | Use: unlocks a mutex
+;\' |/ \ \/_-,)      | Inputs: address of mutex in bitmap
+; '.(  \`\_<         | Outpus: none
+;    \ _\|           |
+;     | |_\_         |
+;snd  \_,_>-'        |
+; =============================================================================
+
+%macro mutex_lock 1
+%%mutex_wait:
+	bts dword [mutex_bitmap + (%1 / 32)], (%1 % 32)
+	jc %%mutex_wait
+%endmacro 
+
+%macro mutex_unlock 1
+	btr dword [mutex_bitmap + (%1 / 32)], (%1 % 32)
+%endmacro 
+
+section .data 
+mutex_bitmap:
+times 256 dd 0
+
+mutex_vga_text_buffer equ 0
+
+; =============================================================================
 ;⠀⢸⠂⠀⠀⠀⠘⣧⠀⠀⣟⠛⠲⢤⡀⠀⠀⣰⠏⠀⠀⠀⠀⠀⢹ | Function: debug_terminal_println
 ;⠀⡿⠀⠀⠀⠀⠀⠈⢷⡀⢻⡀⠀⠀⠙⢦⣰⠏⠀⠀⠀⠀⠀⠀⢸⠀| Use: Scrolls debug terminal and prints a 
 ;⠀⡇⠀⠀⠀⠀⠀⠀⢀⣻⠞⠛⠀⠀⠀⠀⠻⠀⠀⠀⠀⠀⠀⠀⢸⠀ |       line
@@ -128,6 +159,7 @@ _start:
 
 section .text 
 debug_terminal_println:
+	mutex_lock mutex_vga_text_buffer
 	push edi 
 	push esi 
 	push eax 
@@ -144,6 +176,7 @@ debug_terminal_println:
 .print_loop_exit:
 	pop esi 
 	pop edi 
+	mutex_unlock mutex_vga_text_buffer
 	ret
 
 ; =============================================================================⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -175,6 +208,7 @@ debug_terminal_println:
 
 section .text 
 debug_terminal_printlnf:
+	mutex_lock mutex_vga_text_buffer
 	push edi 
 	push esi 
 	push ecx
@@ -195,6 +229,7 @@ debug_terminal_printlnf:
 	pop ecx
 	pop esi 
 	pop edi 
+	mutex_unlock mutex_vga_text_buffer
 	ret
 .print_reg:
 	mov edx, [esp]
@@ -223,6 +258,7 @@ debug_terminal_printlnf:
 ; =============================================================================
 
 debug_terminal_scroll:
+	mutex_lock mutex_vga_text_buffer
 	cld 
 	push esi
 	push edi
@@ -232,6 +268,7 @@ debug_terminal_scroll:
 	rep movsw  
 	pop edi 
 	pop esi 
+	mutex_unlock mutex_vga_text_buffer
 	ret
 
 ; =============================================================================
