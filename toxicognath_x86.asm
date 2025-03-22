@@ -32,8 +32,6 @@ align 4
 section .bss
 align 16
 physical_page_bitmap_table resb 131072
-section .data
-physical_page_bitmap_table_lock dd 0
 
 ; =============================================================================
 ; =============================================================================
@@ -105,9 +103,115 @@ _start:
 	mov edi, physical_page_bitmap_table
 	xor eax, eax 
 	rep stosd 
-	call physical_page_alloc
-	mov byte [0xB8000], 'A'
     jmp $
+.test db 0x07, 0x00
+
+; =============================================================================
+;⠀⢸⠂⠀⠀⠀⠘⣧⠀⠀⣟⠛⠲⢤⡀⠀⠀⣰⠏⠀⠀⠀⠀⠀⢹ | Function: debug_terminal_println
+;⠀⡿⠀⠀⠀⠀⠀⠈⢷⡀⢻⡀⠀⠀⠙⢦⣰⠏⠀⠀⠀⠀⠀⠀⢸⠀| Use: Scrolls debug terminal and prints a 
+;⠀⡇⠀⠀⠀⠀⠀⠀⢀⣻⠞⠛⠀⠀⠀⠀⠻⠀⠀⠀⠀⠀⠀⠀⢸⠀ |       line
+;⠀⡇⠀⠀⠀⠀⠀⠀⠛⠓⠒⠓⠓⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀ | Inputs:
+;⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⠀  |    - Zero terminated string to print
+;⠀⢿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣀⣀⣀⠀⠀⢀⡟⠀ | Outputs:
+;⠀⠘⣇⠀⠘⣿⠋⢹⠛⣿⡇⠀⠀⠀⠀⣿⣿⡇⠀⢳⠉⠀⣠⡾⠁|    - None
+;⣦⣤⣽⣆⢀⡇⠀⢸⡇⣾⡇⠀⠀⠀⠀⣿⣿⡷⠀⢸⡇⠐⠛⠛⣿|
+;⠹⣦⠀⠀⠸⡇⠀⠸⣿⡿⠁⢀⡀⠀⠀⠿⠿⠃⠀⢸⠇⠀⢀⡾⠁|
+;⠀⠈⡿⢠⢶⣡⡄⠀⠀⠀⠀⠉⠁⠀⠀⠀⠀⠀⣴⣧⠆⠀⢻⡄⠀ |
+;⠀⢸⠃⠀⠘⠉⠀⠀⠀⠠⣄⡴⠲⠶⠴⠃⠀⠀⠀⠉⡀⠀⠀⢻⡄ |
+;⠀⠘⠒⠒⠻⢦⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣤⠞⠛⠒⠛⠋⠁ |
+;⠀⠀⠀⠀⠀⠀⠸⣟⠓⠒⠂⠀⠀⠀⠀⠀⠈⢷⡀⠀⠀⠀⠀⠀⠀⠀ |
+;⠀⠀⠀⠀⠀⠀⠀⠙⣦⠀⠀⠀⠀⠀⠀⠀⠀⠈⢷⠀⠀⠀⠀⠀⠀⠀
+;⠀⠀⠀⠀⠀⠀⠀⣼⣃⡀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣆⠀⠀⠀⠀⠀⠀
+;⠀⠀⠀⠀⠀⠀⠀⠉⣹⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⠀⠀⠀⠀⠀⠀
+;⠀⠀⠀⠀⠀⠀⠀⠀⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡆⠀⠀⠀⠀⠀
+; =============================================================================
+
+section .text 
+debug_terminal_println:
+	push edi 
+	push esi 
+	push eax 
+	call debug_terminal_scroll
+	pop esi 
+	mov edi, 0x000B8000
+.print_loop:
+	lodsb
+	or al, al 
+	jz .print_loop_exit
+	mov ah, 0x0F
+	stosw
+	jmp .print_loop
+.print_loop_exit:
+	pop esi 
+	pop edi 
+	ret
+
+; =============================================================================⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡴⠛⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    
+;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⠛⢠⡀⠸⣆⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    |
+;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡼⡁⢰⣋⡇⠀⡿⢳⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠤⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    |
+;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡼⠁⣏⠉⠛⠳⢤⣟⠀⢧⠀⠀⣀⣤⣠⣤⣄⣀⠀⠀⢷⠀⠀⠈⠙⠢⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   |
+;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⡔⠃⣀⠘⢆⣀⠀⠀⠉⠀⠘⠚⠉⠀⠀⢀⡀⠀⢸⠇⣀⢸⡀⠀⠀⠀⠀⠈⢧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   |
+;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⠙⡾⠟⣷⠂⠉⠀⠀⠀⠀⠀⠀⠀⢶⢚⣹⠃⢠⡏⠀⡏⠹⠃⠀⠀⠀⠀⠀⢸⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   |
+;⢀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣼⠇⣰⠀⠀⠀⠠⠶⠳⣦⠀⠀⠀⠘⠲⠃⢠⠟⠁⠀⡏⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   |
+;⠈⣿⣷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠏⡟⠷⠟⠁⠀⠀⣴⡆⠀⢸⡇⠀⠀⢠⣄⡴⠏⠀⡀⢰⠇⠀⠀⠀⠀⠀⠀⢠⡾⠚⠋⠉⠉⢳⡀⠀⠀⠀⠀⠀ |
+;⠀⢹⡌⠙⢷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⢧⡐⠶⠄⠀⠀⠻⣃⡀⠸⡷⠀⠀⠀⠹⣆⠀⢀⡿⡏⠀⠀⠀⠀⠀⠀⣠⡾⠀⠀⠀⢀⡴⠟⠁⠀⠀⠀⠀⠀  |
+;⠀⠀⢷⠀⠀⠻⣷⣄⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⠙⠦⣤⣀⡀⠀⠘⠿⠇⠀⣤⠴⣶⣞⣁⣠⣾⡀⠀⠀⣤⣠⣴⠶⢾⣁⣧⠀⠀⠀⠈⢧⡤⠖⠚⠦⣄⡀⠀|
+;⠀⠀⠘⡇⠀⠀⠈⠻⣷⡀⠀⠀⣠⢾⡉⢉⡍⠙⠳⣶⢟⣯⣭⠿⠷⣤⡀⣠⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠉⠛⠚⠻⠀⠀⠀⠀⠈⣇⠀⠀⠀⠀⠙⣦ |
+;⠀⠀⠀⢹⡀⠀⠀⠀⢿⣧⠀⠀⢧⣸⡀⠘⣇⣴⠀⠀⢘⠛⠛⠀⣰⠊⠻⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣤⣄⣄⡓⣶⠏
+;⠀⠀⠀⠀⣧⠀⠀⠀⠈⣿⣆⣠⣤⣭⡭⠿⣹⣿⡋⠉⠛⠓⠒⠴⠃⠀⠀⠀⠀⢠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⣇⠈⠙⠛⠁⠀
+;⠀⠀⠀⠀⠈⠳⣄⠀⠀⠸⣿⠉⠀⠈⢻⠞⠙⡾⠁⡀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⣀⣀⣀⣀⣀⣀⣀⣬⠷⠶⠤⢤⣤⣄⣀⣀⣤⣄⡀⣰⠤⢽⠆⠀⠀⠀⠀
+;⠀⠀⠀⠀⠀⠀⠈⠳⣄⠀⢿⣧⠀⠀⠘⠷⠾⠷⣼⣅⣀⣀⠀⠀⠀⠀⠀⠀⠸⡅⠀⠀⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠏⠀⠀⠀⠀⠀⠀⠀
+;⠀⠀⠀⠀⠀⠀⠀⠀⠘⢧⡈⡿⣄⣀⣀⣀⣀⣀⣈⣳⣍⠉⠉⠛⢿⡛⢦⡼⠛⠛⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+;⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠻⠻⠶⠿⠿⠷⠷⠿⠿⠾⠶⠶⠶⠶⠿⠟⠁⠀⠀
+; She is just like me fr fr
+; Function: debug_terminal_printlnf
+; Use: prints string and if it hits 0x07 it prints in hex the second argument
+; Inputs:
+;	- zero terminated string
+;   - register to print
+; Outputs: none⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+; =============================================================================
+
+section .text 
+debug_terminal_printlnf:
+	push edi 
+	push esi 
+	push ecx
+	push eax 
+	call debug_terminal_scroll
+	pop esi 
+	mov edi, 0x000B8000
+.print_loop:
+	lodsb
+	or al, al 
+	jz .print_loop_exit
+	cmp al, 0x07
+	je .print_reg
+	mov ah, 0x0F
+	stosw
+	jmp .print_loop
+.print_loop_exit:
+	pop ecx
+	pop esi 
+	pop edi 
+	ret
+.print_reg:
+	mov edx, [esp]
+	mov ecx, 8
+.print_reg_loop:
+	rol edx, 4
+	mov eax, edx
+	and eax, 0x0000000F
+	add eax, 48
+	cmp eax, 57
+	jle .not_a_letter
+	add eax, 7
+.not_a_letter:
+	mov ah, 0x0F
+	stosw
+	loop .print_reg_loop
+	jmp .print_loop
 
 ; =============================================================================
 ;                       .-.   | Function: debug_terminal_scroll
@@ -150,13 +254,11 @@ debug_terminal_scroll:
 
 section .text 
 physical_page_free:
-	mov ecx, eax 
-	shr eax, 17
+	mov ecx, eax
 	shr ecx, 12
-	and ecx, 0x0000001F
-	mov edx, 1
-	shl edx, cl
-	or dword [physical_page_bitmap_table + eax], edx 
+	and ecx, 0x1F
+	shr eax, 17
+	lock bts [physical_page_bitmap_table + eax*4], ecx 
 	ret
 
 ; =============================================================================
@@ -183,66 +285,25 @@ physical_page_free:
 
 section .text 
 physical_page_alloc:
-	push esi 
-	push edi
-	push ebx  
-	cld
-	mov eax, physical_page_bitmap_table_lock
-	call wait_for_lock
-	mov edi, physical_page_bitmap_table
-	mov ecx, (131072 / 4)
-	xor eax, eax 
-	repe scasd
-	jecxz .panic_exit
-	mov ebx, ecx 
-	bsf esi, dword [edi]
-	btr dword [edi], esi
-	mov eax, physical_page_bitmap_table_lock
-	call free_lock
-	mov eax, (131072 / 4)
-	sub eax, ebx 
-	shl eax, 5
-	add eax, esi
-	shl eax, 12
-	pop ebx
-	pop edi 
-	pop esi 
-	ret
-.panic_exit:
-	mov eax, .panic_msg 
+	mov ecx, 32764
+.dword_find_loop:
+	cmp dword [ecx*4 + physical_page_bitmap_table], 0
+	jne .dword_found
+	loop .dword_find_loop
+	mov eax, .no_more_memory_msg
 	call kernel_panic
-section .data
-.panic_msg db "no more physical memory pages!!!!", 0
-
-; =============================================================================
-;======o     o====== | Function: wait_for_lock
-;   ___________      | Use: Waits for a lock 
-;  |___________|     | Inputs: 
-;   |\  /\  /\|      |     - pointer to 32 bit lock
-;   |_\/__\/__|      | Outputs: none
-;  |___________| AH  |
-; =============================================================================
-
-section .text 
-wait_for_lock:
-.spin_and_wait:
-	mov ecx, 1
-	lock xchg [eax], ecx
-	jecxz .spin_and_wait
-	ret
-
-; =============================================================================
-; /~(_)~\        | Function: free_lock
-;(  :=:  =====II | Use: frees a lock
-; \_(~)_/        | Inputs: 
-;                |		- pointer to 32 bit lock
-;                | Outputs: none
-; =============================================================================
-
-section .text 
-free_lock:
-	mov dword [eax], 0
-	ret
+.dword_found:
+	bsf edx, dword [ecx*4 + physical_page_bitmap_table]
+	jz .dword_find_loop
+	lock btr [ecx*4 + physical_page_bitmap_table], edx 
+	jnc .dword_found
+	mov eax, ecx 
+	shl eax, 17
+	shl edx, 12
+	add eax, edx
+	ret 
+section .data 
+.no_more_memory_msg db "NO MORE MEMORY UHOH!!!!", 0
 
 ; =============================================================================
 ; Art by Morfina                | Function: kernel_panic
