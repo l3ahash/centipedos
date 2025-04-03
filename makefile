@@ -1,9 +1,9 @@
-build: toxicognath_x86.bin
-run_x86: toxicognath_x86.bin
-	qemu-system-i386 -kernel toxicognath_x86.bin
-toxicognath_x86.bin: toxicognath_x86.o 
-	ld -m elf_i386 -T kernel_linker_x86.ld $^ -o $@
-%_x86.o: %_x86.asm
+build: toxicognath_i686.bin
+run_i686: toxicognath_i686.bin
+	qemu-system-i386 -kernel toxicognath_i686.bin
+toxicognath_i686.bin: toxicognath_i686.o 
+	ld -m elf_i386 -T kernel_linker_i686.ld $^ -o $@ 
+%_i686.o: %_i686.asm
 	nasm -felf32 $< -o $@
 clean:
-	rm -f *.o *_x86
+	rm -f *.o *_i686
